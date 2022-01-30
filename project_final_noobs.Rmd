@@ -1,0 +1,662 @@
+---
+title: "Refugee Migration Around The World"
+author: "noobs"
+date: "30/01/2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+Samet Saydam
+
+Selin Durmuş
+
+Yunus Emre Özkaya
+
+# Project Description
+
+  People are living in a convoluted world. There are numerous things going on in peoples lives. As individuals, people are interacting with each other in their daily lives. Even though, the world is not just about their micro-scale world such as school,work,family, friends etc.There are an excess of situations going on in the world. At some point, people can not ignore what is going on all around the world. Plenty of things such as poverty, war, hunger, exertion etc. can effect people's lives in a harmful way and they may need to "escape" from where they live. In these circumstances, other people who are not facing problems like this should care about the ones having trouble and welcome them. 
+  Many people are forcing to leave their countries and start a whole new life in another one. As a conclusion of this; their lives are changing, one culture meeting with another, socioeconomic circumstances are changing in both countries etc. Project goal is focusing on this migration situation around the world. 
+
+# Project data & access to data.
+
+  * [Dataset of Migrants](https://www.un.org/development/desa/pd/content/international-migrant-stock)
+
+  Data can be downloaded from the link above(clicking total origin at the right of the page).
+  
+# Actions Taken
+  
+  There are 3 excel file of the dataset. These are dataset of migrant destionation, dataset of migrant origin and dataset of migrant age. In excel files, there are numerous sheets of tables. From the origin dataset, total migration numbers (Table 1) and female rate of migrants (Table 2) are imported. From the destination dataset, total migration numbers (Table 1) , migrants rate to population (Table 3), female rate of migrants (Table 4), refugee numbers and rates (Table 6) are imported. In the last dataset, only age statistics (Table 7) is imported. Through the information that provided by datasets, tables are reshaped by development groups and regions. Besides these classifications, world and Turkey subdatas are created due to make a comparison. With the help of ggplot and tables, numerous bar graphs and maps are generated. 
+  
+# Challenges 
+  
+  There are various problems occured while the processes of mapping because of methodology of the dataset.
+  
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+library(tidyverse)
+library(readr)
+library(readxl)
+library(ggplot2)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#origin female rate
+o_female_percent <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_origin.xlsx" 
+                               , sheet = "Table 2"
+                               , range = cell_rows(11:151))
+o_female_percent <- o_female_percent[-c(1,3:5)]
+colnames(o_female_percent)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep = "")
+o_female_percent[2:8] <- lapply(o_female_percent[2:8], as.double)
+
+o_femalerate_byregion <- o_female_percent[c(2:9),]
+o_femalerate_bydevelopment <- o_female_percent[c(10:21),]
+
+o_world_femalerate <- o_female_percent[c(1),(2:8)]
+o_world_femalerate <- as.data.frame(t(o_world_femalerate))
+o_world_femalerate$Year <- seq(1990, 2020, 5)
+o_world_femalerate[2] <- lapply(o_world_femalerate[2], as.character)
+
+
+o_tr_femalerate <- o_female_percent[c(140),(2:8)]
+o_tr_femalerate <- as.data.frame(t(o_tr_femalerate))
+o_tr_femalerate$Year <- seq(1990, 2020, 5)
+o_tr_femalerate[2] <- lapply(o_tr_femalerate[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#origin total
+o_total <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_origin.xlsx" 
+                               , sheet = "Table 1"
+                               , range = cell_rows(11:151))
+o_total <- o_total[-c(1,3:5,13:26)]
+colnames(o_total)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep="")
+o_total[2:8] <- o_total[,-1]/1000000
+            
+o_total_byregion <- o_total[c(2:9),]
+o_total_bydevelopment <- o_total[c(10:21),]
+
+o_world_total <- o_total[c(1),(2:8)]
+o_world_total <- as.data.frame(t(o_world_total))
+o_world_total$Year <- seq(1990, 2020, 5)
+o_world_total[2] <- lapply(o_world_total[2], as.character)
+
+
+o_tr_total <- o_total[c(140),(2:8)]
+o_tr_total <- as.data.frame(t(o_tr_total))
+o_tr_total$Year <- seq(1990, 2020, 5)
+o_tr_total[2] <- lapply(o_tr_total[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#destination total
+d_total <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx"
+                      , sheet = "Table 1"
+                      , range = cell_rows(11:151))
+d_total <- d_total[-c(1,3:5,13:26)]
+colnames(d_total)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep="")
+d_total[2:8] <- lapply(d_total[2:8], as.double)
+d_total[2:8] <- d_total[,-1]/1000000
+            
+d_total_byregion <- d_total[c(2:9),]
+d_total_bydevelopment <- d_total[c(10:21),]
+
+d_tr_total <- d_total[c(140),(2:8)]
+d_tr_total <- as.data.frame(t(d_tr_total))
+d_tr_total$Year <- seq(1990, 2020, 5)
+d_tr_total[2] <- lapply(d_tr_total[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#destination migrant rate
+d_migrantrate <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx"
+                      , sheet = "Table 3"
+                      , range = cell_rows(11:151))
+d_migrantrate <- d_migrantrate[-c(1,3:5,13:26)]
+colnames(d_migrantrate)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep="")
+d_migrantrate[2:8] <- lapply(d_migrantrate[2:8], as.double)
+            
+d_migrantrate_byregion <- d_migrantrate[c(2:9),]
+d_migrantrate_bydevelopment <- d_migrantrate[c(10:21),]
+
+d_world_migrantrate <- d_migrantrate[c(1),(2:8)]
+d_world_migrantrate <- as.data.frame(t(d_world_migrantrate))
+d_world_migrantrate$Year <- seq(1990, 2020, 5)
+d_world_migrantrate[2] <- lapply(d_world_migrantrate[2], as.character)
+
+
+d_tr_migrantrate <- d_migrantrate[c(140),(2:8)]
+d_tr_migrantrate <- as.data.frame(t(d_tr_migrantrate))
+d_tr_migrantrate$Year <- seq(1990, 2020, 5)
+d_tr_migrantrate[2] <- lapply(d_tr_migrantrate[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#destination female rate
+d_female_percent <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx" 
+                               , sheet = "Table 4"
+                               , range = cell_rows(11:151))
+d_female_percent <- d_female_percent[-c(1,3:5)]
+colnames(d_female_percent)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep = "")
+d_female_percent[2:8] <- lapply(d_female_percent[2:8], as.double)
+
+d_femalerate_byregion <- d_female_percent[c(2:9),]
+d_femalerate_bydevelopment <- d_female_percent[c(10:21),]
+
+d_tr_femalerate <- d_female_percent[c(140),(2:8)]
+d_tr_femalerate <- as.data.frame(t(d_tr_femalerate))
+d_tr_femalerate$Year <- seq(1990, 2020, 5)
+d_tr_femalerate[2] <- lapply(d_tr_femalerate[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#destination refugee total
+d_refugee_total <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx"
+                              , sheet = "Table 6"
+                              , range = cell_rows(11:151))
+d_refugee_total <- d_refugee_total[-c(1,3:5,13:25)]
+colnames(d_refugee_total)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep="")
+d_refugee_total[2:8] <- lapply(d_refugee_total[2:8], as.double)
+d_refugee_total[2:8] <- d_refugee_total[,-1]/1000000
+            
+d_refugeetotal_byregion <- d_refugee_total[c(2:9),]
+d_refugeetotal_bydevelopment <- d_refugee_total[c(10:21),]
+
+d_world_refugeetotal <- d_refugee_total[c(1),(2:8)]
+d_world_refugeetotal <- as.data.frame(t(d_world_refugeetotal))
+d_world_refugeetotal$Year <- seq(1990, 2020, 5)
+d_world_refugeetotal[2] <- lapply(d_world_refugeetotal[2], as.character)
+
+
+d_tr_refugeetotal <- d_refugee_total[c(140),(2:8)]
+d_tr_refugeetotal <- as.data.frame(t(d_tr_refugeetotal))
+d_tr_refugeetotal$Year <- seq(1990, 2020, 5)
+d_tr_refugeetotal[2] <- lapply(d_tr_refugeetotal[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#refugee rate to migrants
+d_refugeerate <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx"
+                              , sheet = "Table 6"
+                              , range = cell_rows(11:151))
+d_refugeerate <- d_refugeerate[c(2,13:19)]
+colnames(d_refugeerate)[-(1)] <- paste("Mid-Year ", seq(1990, 2020, 5), sep="")
+d_refugeerate[2:8] <- lapply(d_refugeerate[2:8], as.double)
+
+d_refugeerate_byregion <- d_refugeerate[c(2:9),]
+d_refugeerate_bydevelopment <- d_refugeerate[c(10:21),]
+
+d_world_refugeerate <- d_refugeerate[c(1),(2:8)]
+d_world_refugeerate <- as.data.frame(t(d_world_refugeerate))
+d_world_refugeerate$Year <- seq(1990, 2020, 5)
+d_world_refugeerate[2] <- lapply(d_world_refugeerate[2], as.character)
+
+
+d_tr_refugeerate <- d_refugeerate[c(140),(2:8)]
+d_tr_refugeerate <- as.data.frame(t(d_tr_refugeerate))
+d_tr_refugeerate$Year <- seq(1990, 2020, 5)
+d_tr_refugeerate[2] <- lapply(d_tr_refugeerate[2], as.character)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+o_totalmap <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_origin.xlsx" 
+                               , sheet = "Table 1"
+                               , range = cell_rows(11:294))
+o_totalmap <- o_totalmap[c(2,12)]
+colnames(o_totalmap)[1] <- "Emigrating Countries"
+colnames(o_totalmap)[2] <- "Value"
+o_totalmap <- o_totalmap[-c(1:23, 44, 54, 62, 68, 86, 87, 93, 102, 114, 124, 143, 144, 155, 169, 186, 196, 197, 226, 235, 250, 256, 257, 260, 266, 274),]
+
+d_totalmap <- read_excel("data/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx" 
+                               , sheet = "Table 1"
+                               , range = cell_rows(11:294))
+d_totalmap <- d_totalmap[c(2,12)]
+colnames(d_totalmap)[1] <- "region"
+colnames(d_totalmap)[2] <- "Value"
+d_totalmap <- d_totalmap[-c(1:23, 44, 54, 62, 68, 86, 87, 93, 102, 114, 124, 143, 144, 155, 169, 186, 196, 197, 226, 235, 250, 256, 257, 260, 266, 274),]
+d_totalmap[2] <- lapply(d_totalmap[2], as.double)
+```
+
+```{r, message=FALSE , echo=FALSE, warning=FALSE}
+#destination age
+d_age <- read_excel("data/undesa_pd_2020_ims_stock_by_age_sex_and_destination.xlsx" 
+                               , sheet = "Table 6"
+                               , range = cell_rows(11:991))
+colnames(d_age)[7] <- "<20"
+colnames(d_age)[8] <- "20-64"
+colnames(d_age)[9] <- "65+"
+d_ageworld <- d_age[c(7),c(2,7:9)]
+d_ageworld[2:4] <- lapply(d_ageworld[2:4],as.double)
+d_ageworld[2:4] <- d_ageworld[2:4]/1000000
+d_agetr <- d_age[c(980),c(2,7:9)]
+d_agetr[2:4] <- lapply(d_agetr[2:4],as.double)
+d_agetr[2:4] <- d_agetr[2:4]/1000000
+```
+
+# Classification Details 
+
+The designation of “more developed” and “less developed”, or “developed” and “developing”, is intended
+for statistical purposes and does not express a judgment about the stage in the development process
+reached by a particular country or area. More developed regions comprise all countries and areas of
+Europe and Northern America, plus Australia, New Zealand and Japan. Less developed regions comprise
+all countries and areas of Africa, Asia (excluding Japan), Latin America and the Caribbean, and Oceania
+excluding Australia and New Zealand.
+The group of least developed countries (LDCs) includes 47 countries, located in sub-Saharan Africa (32),
+Northern Africa and Western Asia (2), Central and Southern Asia (4), Eastern and South-Eastern Asia (4),
+Latin America and the Caribbean (1), and Oceania (4).
+The group of Landlocked Developing Countries (LLDCs) includes 32 countries or territories, located in
+sub-Saharan Africa (16), Northern Africa and Western Asia (2), Central and Southern Asia (8), Eastern
+and South-Eastern Asia (2), Latin America and the Caribbean (2), and Europe and Northern America
+(2).
+The group of Small Island Developing States (SIDS) includes 58 countries or territories, located in the
+Caribbean (29), the Pacific (20), and the Atlantic, Indian Ocean, Mediterranean and South China Sea
+(AIMS) (9). Further information is available at http://unohrlls.org/about-sids/.
+The classification of countries and areas by income level is based on gross national income (GNI) per
+capita as reported by the World Bank (June 2020). These income groups are not available for all countries
+and areas.
+
+Further information is available [here](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups).
+```{r, echo=FALSE}
+ggplot(o_world_total) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Blues", 
+ direction = 1) +
+ labs(y = " ", title = "World", subtitle = "Migration Population (in millions)", 
+ fill = " ") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L), axis.title.x = element_text(size = 12L, hjust = 1)) +
+ ylim(0, 
+ 350)
+```
+
+```{r, echo=FALSE, message=FALSE , warning=FALSE}
+library(janitor)
+library(tidyr)
+library(readr)
+library(rworldmap)
+```
+
+```{r, echo=FALSE, message=FALSE , warning=FALSE}
+joinData <- joinCountryData2Map( o_totalmap,
+                                 joinCode = "NAME",
+                                 nameJoinColumn = "Emigrating Countries")
+theMap <- mapCountryData(joinData, nameColumnToPlot="Emigrating Countries", addLegend = FALSE )
+```
+
+```{r, echo=FALSE, message=FALSE , warning=FALSE}
+#zoomed
+mapRegion = "Europe"
+theMap_europe <- mapCountryData( joinData, nameColumnToPlot="Emigrating Countries", mapRegion = "Europe", addLegend=FALSE )
+
+mapRegion = "Africa"
+theMap_europe <- mapCountryData( joinData, nameColumnToPlot="Emigrating Countries", mapRegion = "Africa", addLegend=FALSE )
+```
+
+```{r, echo=FALSE, message=FALSE , warning=FALSE}
+mapdata <- map_data("world") ##ggplot2
+mapdata <- left_join(mapdata, d_totalmap, by="region")
+mapdata1<-mapdata %>% filter(!is.na(mapdata$Value))
+
+map1<-ggplot(mapdata1, aes( x = long, y = lat, group=group)) +
+       geom_polygon( data=mapdata1, 
+            aes(x=long, y=lat, group=group, fill = Value/100000), 
+            color="black", size = 0.3) + 
+  
+      scale_fill_continuous(name="Destination", low = "lightblue", 
+            high = "darkblue",limits = c(0,40), breaks=c(5,10,15,20,25,30,35,40), 
+           na.value = "white")+
+       theme(axis.text.x = element_blank(),
+       axis.text.y = element_blank(),
+       axis.ticks = element_blank(),
+       axis.title.y=element_blank(),
+       axis.title.x=element_blank(),
+        rect = element_blank())
+  
+      labs(title="Immigrant population (in millions)")
+      map1
+```
+
+```{r, echo=FALSE}
+ggplot(o_total_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greens", direction = 1) +
+ labs(x = " ", y = " ", title = "Development Group (2020)", subtitle = "Migrant Origin (in millions)", 
+ fill = " ") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L))
+
+```
+
+```{r, echo=FALSE}
+ggplot(d_total_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greens", direction = 1) +
+ labs(x = " ", y = " ", title = "Development Group (2020)", subtitle = "Migrant Destination (in millions)", 
+ fill = " ") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L))
+```
+
+```{r, echo=FALSE}
+ggplot(d_migrantrate_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greens", direction = 1) +
+ labs(x = " ", y = " ", title = "Development Group (2020)", subtitle = "Migrant Rate to Population (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L)) +
+ ylim(0, 30)
+```
+
+```{r, echo=FALSE}
+ggplot(o_total_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+ labs(x = " ", y = " ", title = "Region (2020)", subtitle = "Migrant Origin (in millions)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L),
+ plot.subtitle = element_text(size = 12L))
+```
+
+```{r, echo=FALSE}
+ggplot(d_total_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+ labs(x = " ", y = " ", title = "Region (2020)", subtitle = "Migrant Destination (in millions)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L),
+ plot.subtitle = element_text(size = 12L))
+```
+
+```{r, echo=FALSE}
+ggplot(d_migrantrate_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+ labs(x = " ", y = " ", title = "Region (2020)", subtitle = "Migrant Rate to Population (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L),
+ plot.subtitle = element_text(size = 12L)) + ylim(0, 50)
+```
+
+```{r, echo=FALSE}
+ggplot(o_world_femalerate) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Blues", 
+ direction = 1) +
+ labs(y = " ", title = "World ", subtitle = "Female Migrant Rate (%)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(o_femalerate_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlGn", direction = 1) +
+ labs(x = " ", y = " ", title = "Developmnet Group (2020)", subtitle = "Origin Female Migrant Rate (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(d_femalerate_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlGn", direction = 1) +
+ labs(x = " ", y = " ", title = "Developmnet Group (2020)", subtitle = "Destination Female Migrant Rate (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(o_femalerate_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+ labs(x = " ", y = " ", title = "Region (2020)", subtitle = "Origin Female Migrant Rate (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none") +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(d_femalerate_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+ labs(x = " ", y = " ", title = "Region (2020)", subtitle = "Destination Female Migrant Rate (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none") +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+newagetr<- as.data.frame(t(d_ageworld))
+population<- newagetr[2:4,]
+piepercent<- round(100 * population / sum(population), 1)
+pie(population,labels=piepercent,main= "Age Rates of Migrants (World)", col= topo.colors(length(population)))
+legend("topright", c("<20","20-64", "65+"),
+                    cex = 0.5, fill = topo.colors(length(population)))
+```
+
+```{r, echo=FALSE}
+ggplot(o_tr_total) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Reds", 
+ direction = 1) +
+ labs(x = " ", y = " ", title = "Turkey", subtitle = "Migrant Origin (in millions)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 10)
+```
+
+```{r, echo=FALSE}
+ggplot(d_tr_total) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Reds", 
+ direction = 1) +
+ labs(x = " ", y = " ", title = "Turkey", subtitle = "Migrant Destination (in millions)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 10)
+```
+
+```{r, echo=FALSE}
+ggplot(d_tr_migrantrate) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Reds", 
+ direction = 1) +
+ labs(x = " ", y = " ", title = "Turkey", subtitle = "Migrant Rate to Population (%)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 10)
+```
+
+```{r, echo=FALSE}
+ggplot(o_tr_femalerate) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Reds", 
+ direction = 1) +
+ labs(x = " ", y = " ", title = "Turkey", subtitle = "Origin Female Migrant Rate (%)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(d_tr_femalerate) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Reds", 
+ direction = 1) +
+ labs(x = " ", y = " ", title = "Turkey", subtitle = "Destination Female Migrant Rate (%)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+newagetr<- as.data.frame(t(d_agetr))
+population<- newagetr[2:4,]
+piepercent<- round(100 * population / sum(population), 1)
+pie(population,labels=piepercent,main= "Age Rates of Migrants (Turkey)", col= heat.colors(length(population)))
+legend("topright", c("<20","20-64", "65+"),
+                    cex = 0.5, fill = heat.colors(length(population)))
+```
+
+```{r, echo=FALSE}
+ggplot(d_world_refugeetotal) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", 
+ direction = 1) +
+ labs(y = " ", title = "World", subtitle = "Refugee (in millions)") +
+ theme_minimal() +
+ theme(legend.position = "none",plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L), axis.title.y = element_text(size = 12L)) +
+ ylim(0, 50)
+```
+
+```{r, echo=FALSE}
+ggplot(d_world_refugeerate) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", 
+ direction = 1) +
+ labs(y = " ", title = "World", subtitle = "Refugee Rate to Migrants (%)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 20)
+```
+
+```{r, echo=FALSE}
+ggplot(d_refugeetotal_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", direction = 1) +
+ labs(x = " ", y = " ", title = "Development Group (2020)", subtitle = "Refugee (in millions)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 30)
+```
+
+```{r, echo=FALSE}
+ggplot(d_refugeerate_bydevelopment) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", direction = 1) +
+ labs(x = " ", y = " ", title = "Development Group (2020)", subtitle = "Refugee Rate to Migrants (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(d_refugeetotal_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", direction = 1) +
+ labs(x = " ", y = " ", title = "Regions (2020)", subtitle = "Refugee (in millions)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), 
+ plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 30)
+```
+
+```{r, echo=FALSE}
+ggplot(d_refugeerate_byregion) +
+ aes(x = `Region, development group, country or area`, fill = `Mid-Year 2020`, 
+ weight = `Mid-Year 2020`) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", direction = 1) +
+ labs(x = " ", y = " ", title = "Regions (2020)", subtitle = "Refugee Rate to Migrants (%)") +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 75)
+```
+
+```{r, echo=FALSE}
+ggplot(d_tr_refugeetotal) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", 
+ direction = 1) +
+ labs(y = " ", title = "Turkey", subtitle = "Refugee (in millions)") +
+ theme_minimal() +
+ theme(legend.position = "none",plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L), axis.title.y = element_text(size = 12L)) +
+ ylim(0, 10)
+```
+
+```{r, echo=FALSE}
+ggplot(d_tr_refugeerate) +
+ aes(x = Year, fill = V1, weight = V1) +
+ geom_bar(width = 0.4) +
+ scale_fill_distiller(palette = "Greys", 
+ direction = 1) +
+ labs(y = " ", title = "Turkey", subtitle = "Refugee Rate to Migrants (%)") +
+ theme_minimal() +
+ theme(legend.position = "none", plot.title = element_text(size = 12L), plot.subtitle = element_text(size = 12L)) +
+ ylim(0, 100)
+```
+
+# Conclusion 
+
+  According to graphics, the migration number is increased obviously. However, migration is not considered as a problem in most of the circumstances. Especially in developed countries , migrations that are planned and under controlled are straightforward to cope with. When it comes to refugees, many problems may occur.
+  In conclusion, in order to build a new life to refugees and  adapt them into the host country, government needs to set some arrangements and rules.
+
+# References
+
+* https://www.un.org/development/desa/pd/content/international-migrant-stock
+
+* United Nations, Department of Economic and Social Affairs, Population Division (2020). International
+Migrant Stock 2020. (United Nations database, POP/DB/MIG/Stock/Rev.2020).
+
+* https://r-spatial.org/r/2018/10/25/ggplot2-sf.html
+
+* https://www.r-graph-gallery.com/ggplot2-package.html
